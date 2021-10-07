@@ -22,7 +22,7 @@ services:
       - app-network
 
   backend:
-    image: node
+    build: ./server/
     container_name: 'backend'
     user: "node"
     depends_on:
@@ -40,7 +40,7 @@ services:
       - app-network
 
   frontend:
-    image: node
+    build: ./client/
     container_name: 'frontend'
     user: "node"
     depends_on: 
