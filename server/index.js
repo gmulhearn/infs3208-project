@@ -3,27 +3,23 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const SpotifyWebApi = require("spotify-web-api-node");
 const youtubeSearchApi = require("youtube-search-without-api-key");
-const { default: axios } = require("axios");
 const { MongoClient, Db } = require("mongodb");
 
 const API_PORT = 3030;
 
-const YOUTUBE_API_KEY = "secrethere";
-const SPOTIFY_CLIENT_ID = "24ef7853deb14c51bd6f72e440f35fc1";
-const SPOTIFY_CLIENT_SECRET = "secrethere";
-const SPOTIFY_API_REDIRECT_URL = "http://localhost:3000";
+const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
+if (!SPOTIFY_CLIENT_ID) throw Error("SPOTIFY_CLIENT_ID ENV UNDEFINED");
 
-const MONGODB_URL = "mongodb://localhost:27017";
+const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
+if (!SPOTIFY_CLIENT_SECRET) throw Error("SPOTIFY_CLIENT_SECRET ENV UNDEFINED");
+
+//const SPOTIFY_API_REDIRECT_URL = "http://localhost:81";
+
+const MONGODB_URL = "mongodb://mongo:27017";
 
 const USER_PLAYLISTS_DOC = "userPlaylists";
 const PLAYLISTS_DOC = "playlists";
 const SONGS_DOC = "songs";
-
-//   curl \
-//   'https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=ariana&key=[YOUR_API_KEY]' \
-//   --header 'Authorization: Bearer [YOUR_ACCESS_TOKEN]' \
-//   --header 'Accept: application/json' \
-//   --compressed
 
 // interface Song {
 //     title: string,
@@ -37,7 +33,6 @@ const SONGS_DOC = "songs";
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
-//app.use(bodyParser.urlencoded({ extended: true }));
 
 const mongoClient = new MongoClient(MONGODB_URL);
 
@@ -46,16 +41,7 @@ const mongoClient = new MongoClient(MONGODB_URL);
  */
 var db;
 
-const youtubeAPISearch = async (query) => {
-  const getURL = `https://youtube.googleapis.com/youtube/v3/search?part=snippet&q=${query}&key=${YOUTUBE_API_KEY}`;
-
-  axios.get(getURL).then((res) => {
-    console.log(res);
-    console.log(res.data);
-    console.log(JSON.stringify(res.data));
-  });
-};
-
+// helper method for stitching two arrays together. e.g. ([1,2,3], [a,b,c]) => [1,a,2,b,3,c]
 const stitchArrays = (x, y) => {
   var arr = [];
   var length = Math.max(x.length, y.length);
@@ -69,10 +55,10 @@ const stitchArrays = (x, y) => {
 
 app.post("/auth-with-code", (req, res) => {
   console.log("auth-with-code request incoming");
-  const authCode = req.body.authCode;
+  const { authCode, redirectUri } = req.body;
 
   const spotifyWebApi = new SpotifyWebApi({
-    redirectUri: SPOTIFY_API_REDIRECT_URL,
+    redirectUri: redirectUri,
     clientId: SPOTIFY_CLIENT_ID,
     clientSecret: SPOTIFY_CLIENT_SECRET,
   });
@@ -136,7 +122,7 @@ app.get("/search", async (req, res) => {
       //       : 0);
       return {
         title: video.title,
-        artist: "Youtube", // TODO... flaw of the API
+        artist: "Youtube", // ... flaw of the free API
         durationSeconds: 0,
         coverArtURL: video.snippet.thumbnails.url,
         type: "YOUTUBE",
@@ -273,12 +259,12 @@ app.post("/init-playlist", async (req, res) => {
 
 app.post("/add-song-to-playlist", async (req, res) => {
   const username = await getUsername(req);
-  const { id, song } = req.body;
+  const { playlistId, song } = req.body;
 
   // check user owns playlist
   const userOwnsPlaylist = (
     await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
-  ).playlists.includes(id);
+  ).playlists.includes(playlistId);
   if (!userOwnsPlaylist) {
     res.sendStatus(403);
     return;
@@ -287,7 +273,7 @@ app.post("/add-song-to-playlist", async (req, res) => {
   // TODO - check playlist exists
 
   // add songId to playlist doc songs
-  await db.collection(PLAYLISTS_DOC).updateOne({ id: id }, [
+  await db.collection(PLAYLISTS_DOC).updateOne({ id: playlistId }, [
     {
       $set: { songs: { $concatArrays: ["$songs", [song.uri]] } },
     },
@@ -303,6 +289,62 @@ app.post("/add-song-to-playlist", async (req, res) => {
 
   // add song to songs doc
   await db.collection(SONGS_DOC).insertOne(song);
+
+  res.sendStatus(200);
+});
+
+app.post("/delete-playlist", async (req, res) => {
+  const username = await getUsername(req);
+  const { playlistId } = req.body;
+
+  // check user owns playlist
+  const usersPlaylists = (
+    await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
+  ).playlists;
+  if (!usersPlaylists.includes(playlistId)) {
+    res.sendStatus(403);
+    return;
+  }
+
+  // remove playlist from userPlaylists doc
+  await db.collection(USER_PLAYLISTS_DOC).updateOne({ username: username }, [
+    {
+      $set: {
+        playlists: usersPlaylists.filter((pid) => pid !== playlistId),
+      },
+    },
+  ]);
+
+  // remove playlist from playlists doc
+  await db.collection(PLAYLISTS_DOC).deleteOne({ id: playlistId });
+
+  res.sendStatus(200);
+});
+
+app.post("/delete-song-from-playlist", async (req, res) => {
+  const username = await getUsername(req);
+  const { playlistId, songUri } = req.body;
+
+  // check user owns playlist
+  const userOwnsPlaylist = (
+    await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
+  ).playlists.includes(playlistId);
+  if (!userOwnsPlaylist) {
+    res.sendStatus(403);
+    return;
+  }
+
+  // delete song from playlists doc
+  const playlistSongs = (
+    await db.collection(PLAYLISTS_DOC).findOne({ id: playlistId })
+  ).songs;
+  await db.collection(PLAYLISTS_DOC).updateOne({ id: playlistId }, [
+    {
+      $set: {
+        songs: playlistSongs.filter((playlistSong) => playlistSong !== songUri),
+      },
+    },
+  ]);
 
   res.sendStatus(200);
 });
@@ -347,6 +389,7 @@ app.get("/get-my-playlists", async (req, res) => {
 });
 
 mongoClient.connect().then(() => {
+  console.log("Connected to db");
   db = mongoClient.db("infs3208");
   app.listen(API_PORT);
 });

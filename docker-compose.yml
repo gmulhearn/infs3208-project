@@ -1,0 +1,61 @@
+version: '2'
+
+services:
+  mongo:
+    image: mongo
+    container_name: 'mongo'
+    ports:
+      - "27017:27017"
+    networks: 
+      - app-network
+
+  mongo_admin:
+    image: mongo-express
+    container_name: 'mongo_admin'
+    depends_on:
+      - mongo
+    links:
+      - mongo
+    ports:
+      - "8081:8081"
+    networks: 
+      - app-network
+
+  backend:
+    image: node
+    container_name: 'backend'
+    user: "node"
+    depends_on:
+      - mongo
+    working_dir: /home/node/app
+    environment: 
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+    volumes:
+      - ./server/:/home/node/app
+    ports:
+      - "3030:3030"
+    command: "node index.js"
+    networks: 
+      - app-network
+
+  frontend:
+    image: node
+    container_name: 'frontend'
+    user: "node"
+    depends_on: 
+      - backend
+    working_dir: /home/node/app
+    environment:
+      - REACT_APP_AUTH_SERVER_BASE_URL=http://${EXTERNAL_IP}:3030
+    volumes:
+      - ./client/:/home/node/app
+    ports:
+      - "80:3000"
+    command: "npm start"
+    networks:
+      - app-network
+
+networks: 
+      app-network:
+        driver: bridge
