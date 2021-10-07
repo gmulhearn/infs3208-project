@@ -1,0 +1,26 @@
+{
+  "userPlaylists": [
+    {
+      "username": "username1",
+      "playlists": ["abcde-abcde-abcde", "abcdf-abcdf-abcdf"]
+    }
+  ],
+  "playlists": [
+    {
+      "id": "abcde-abcde-abcde",
+      "title": "playlist1",
+      "songs": ["uri1", "uri2", "uri3"]
+    },
+    {
+      "id": "abcdf-abcdf-abcdf",
+      "title": "playlist2",
+      "songs": ["uri4", "uri2", "uri5"]
+    }
+  ],
+  "songs": [
+    {
+      "uri": "xyz",
+      "other": "data_here"
+    }
+  ]
+}
