@@ -33,6 +33,7 @@ services:
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
     volumes:
       - ./server/:/home/node/app
+      - /home/node/app/node_modules
     ports:
       - "3030:3030"
     command: "node index.js"
@@ -50,6 +51,7 @@ services:
       - REACT_APP_AUTH_SERVER_BASE_URL=http://${EXTERNAL_IP}:3030
     volumes:
       - ./client/:/home/node/app
+      - /home/node/app/node_modules
     ports:
       - "80:3000"
     command: "npm start"
