@@ -1,6 +1,6 @@
 FROM node:latest
 
-WORKDIR /home/node/app
+USER node
+WORKDIR /home/node
 COPY package.json .
 RUN npm install --quiet
-USER node
