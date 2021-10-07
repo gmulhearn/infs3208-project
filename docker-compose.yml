@@ -27,13 +27,13 @@ services:
     user: "node"
     depends_on:
       - mongo
-    working_dir: /home/node/app
+    working_dir: /home/node
     environment: 
       - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
       - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
     volumes:
-      - ./server/:/home/node/app
-      - /home/node/app/node_modules
+      - ./server/:/home/node
+      - /home/node/node_modules
     ports:
       - "3030:3030"
     command: "node index.js"
@@ -46,12 +46,12 @@ services:
     user: "node"
     depends_on: 
       - backend
-    working_dir: /home/node/app
+    working_dir: /home/node
     environment:
       - REACT_APP_AUTH_SERVER_BASE_URL=http://${EXTERNAL_IP}:3030
     volumes:
-      - ./client/:/home/node/app
-      - /home/node/app/node_modules
+      - ./client/:/home/node
+      - /home/node/node_modules
     ports:
       - "80:3000"
     command: "npm start"
