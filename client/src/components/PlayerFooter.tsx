@@ -55,7 +55,7 @@ const PlayerFooter = ({
   const opts: Options = {
     height: "1",
     width: "1",
-    host: "https://www.youtube.com",
+    host: `${window.location.protocol}//www.youtube.com`,
     playerVars: {
       // https://developers.google.com/youtube/player_parameters
       autoplay: 1,
