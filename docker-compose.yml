@@ -41,20 +41,24 @@ services:
       - app-network
 
   frontend:
-    build: ./client/
+    build: 
+      context: ./
+      dockerfile: ./client/Dockerfile
+      args: 
+        - REACT_APP_AUTH_SERVER_BASE_URL=http://${EXTERNAL_IP}:3030
     container_name: 'frontend'
-    user: "node"
+    # user: "node"
     depends_on: 
       - backend
-    working_dir: /home/node
-    environment:
-      - REACT_APP_AUTH_SERVER_BASE_URL=http://${EXTERNAL_IP}:3030
-    volumes:
-      - ./client/:/home/node
-      - /home/node/node_modules
+    # working_dir: /home/node
+    # environment:
+    #   - REACT_APP_AUTH_SERVER_BASE_URL=http://${EXTERNAL_IP}:3030
+    # volumes:
+      # - ./client/:/home/node
+      # - /home/node/node_modules
     ports:
-      - "80:3000"
-    command: "npm start"
+      - "80:80"
+    # command: "npm start"
     networks:
       - app-network
 
