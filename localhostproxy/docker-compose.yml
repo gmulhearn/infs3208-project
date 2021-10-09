@@ -1,0 +1,10 @@
+version: '3'
+
+services:
+  proxy:
+    image: nginx
+    container_name: 'proxy'
+    volumes:
+      - ./nginx.ini:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"

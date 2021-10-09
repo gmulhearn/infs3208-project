@@ -1,7 +1,7 @@
 import { Box, Button, makeStyles, Paper, Typography } from "@material-ui/core";
 import React from "react";
 
-const SPOTIFY_CLIENT_ID =  "24ef7853deb14c51bd6f72e440f35fc1"
+const SPOTIFY_CLIENT_ID =  "24ef7853deb14c51bd6f72e440f35fc1" // TODO - process env
 const SPOTIFY_RESPONSE_TYPE = "code"
 const SPOTIFY_REDIRECT_URL = window.location.origin
 const SPOTIFY_AUTH_URL = 
