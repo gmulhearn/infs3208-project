@@ -39,13 +39,12 @@ services:
       - app-network
 
   frontend:
-    image: nginx
+    build: 
+      context: ./
+      dockerfile: ./client/Dockerfile-full-build
     container_name: 'frontend'
     depends_on: 
       - backend
-    volumes:
-      - ./nginx/nginx.ini:/etc/nginx/conf.d/default.conf
-      - ./client:/var/www/html   # NOTE: assumes client/build/ directory exists. See README
     ports:
       - "80:80"
     networks:
