@@ -15,7 +15,7 @@ import PlaylistView from "../components/PlaylistView";
 import SongSearch from "../components/SongSearch";
 import PlayerFooter from "../components/PlayerFooter";
 
-const AUTH_SERVER_BASE_URL = process.env.REACT_APP_AUTH_SERVER_BASE_URL
+const AUTH_SERVER_BASE_URL = `${window.location.origin}/api`
 
 const useStyles = makeStyles((theme) => ({
   root: {

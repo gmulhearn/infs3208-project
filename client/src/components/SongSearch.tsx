@@ -6,7 +6,7 @@ import SongItemPaper from './SongItemPaper';
 import spotifyLogo from "../spotifylogo.png";
 import youtubeLogo from "../youtubelogo.png";
 
-const AUTH_SERVER_BASE_URL = process.env.REACT_APP_AUTH_SERVER_BASE_URL;
+const AUTH_SERVER_BASE_URL = `${window.location.origin}/api`
 
 const useStyles = makeStyles((theme) => ({
     songSearchDropdown: {

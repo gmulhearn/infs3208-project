@@ -13,8 +13,6 @@ if (!SPOTIFY_CLIENT_ID) throw Error("SPOTIFY_CLIENT_ID ENV UNDEFINED");
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 if (!SPOTIFY_CLIENT_SECRET) throw Error("SPOTIFY_CLIENT_SECRET ENV UNDEFINED");
 
-//const SPOTIFY_API_REDIRECT_URL = "http://localhost:81";
-
 const MONGODB_URL = "mongodb://mongo:27017";
 
 const USER_PLAYLISTS_DOC = "userPlaylists";
@@ -54,96 +52,95 @@ const stitchArrays = (x, y) => {
 };
 
 app.post("/auth-with-code", (req, res) => {
-  console.log("auth-with-code request incoming");
-  const { authCode, redirectUri } = req.body;
+  try {
+    console.log("auth-with-code request incoming");
+    const { authCode, redirectUri } = req.body;
 
-  const spotifyWebApi = new SpotifyWebApi({
-    redirectUri: redirectUri,
-    clientId: SPOTIFY_CLIENT_ID,
-    clientSecret: SPOTIFY_CLIENT_SECRET,
-  });
-
-  spotifyWebApi
-    .authorizationCodeGrant(authCode)
-    .then((data) => {
-      res.json({
-        access_token: data.body.access_token,
-        refresh_token: data.body.refresh_token,
-        expires_in: data.body.expires_in,
-      });
-    })
-    .catch((err) => {
-      res.sendStatus(403);
+    const spotifyWebApi = new SpotifyWebApi({
+      redirectUri: redirectUri,
+      clientId: SPOTIFY_CLIENT_ID,
+      clientSecret: SPOTIFY_CLIENT_SECRET,
     });
+
+    spotifyWebApi
+      .authorizationCodeGrant(authCode)
+      .then((data) => {
+        res.json({
+          access_token: data.body.access_token,
+          refresh_token: data.body.refresh_token,
+          expires_in: data.body.expires_in,
+        });
+      })
+      .catch((err) => {
+        res.sendStatus(403);
+      });
+  } catch (e) {
+    res.sendStatus(500);
+  }
 });
 
 app.get("/search", async (req, res) => {
-  console.log(req.query);
-  const search = req.query.search;
-  const searchFilters = JSON.parse(req.query.filters); // { youtubeResults: bool, spotifyResults: bool }
-  const spotifyAccessToken = req.query.spotifyAccessToken;
-
-  const spotifyWebApi = new SpotifyWebApi({
-    clientId: SPOTIFY_CLIENT_ID,
-    accessToken: spotifyAccessToken,
-  });
-
   try {
-    const spotifyResults = (
-      await spotifyWebApi.searchTracks(search, {
-        limit: 10,
-      })
-    ).body.tracks.items;
+    console.log(req.query);
+    const search = req.query.search;
+    const searchFilters = JSON.parse(req.query.filters); // { youtubeResults: bool, spotifyResults: bool }
+    const spotifyAccessToken = req.query.spotifyAccessToken;
 
-    const youtubeResults = await (
-      await youtubeSearchApi.search(search)
-    ).slice(0, 10);
-
-    const normalizedSpotifyResults = spotifyResults.map((track) => {
-      return {
-        title: track.name,
-        artist: track.artists[0]?.name,
-        durationSeconds: Math.floor(track.duration_ms / 1000),
-        coverArtURL: track.album.images[0]?.url,
-        type: "SPOTIFY",
-        uri: track.uri,
-      };
+    const spotifyWebApi = new SpotifyWebApi({
+      clientId: SPOTIFY_CLIENT_ID,
+      accessToken: spotifyAccessToken,
     });
 
-    const normalizedYoutubeResults = youtubeResults.map((video) => {
-      //   let durationComponents = video.snippet.duration.split(":");
-      //   const durationSeconds =
-      //     Number(durationComponents[durationComponents.length - 1]) +
-      //     (durationComponents[durationComponents.length - 2]
-      //       ? Number(durationComponents[durationComponents.length - 2]) * 60
-      //       : 0) +
-      //     (durationComponents[durationComponents.length - 3]
-      //       ? Number(durationComponents[durationComponents.length - 3]) * 60 * 60
-      //       : 0);
-      return {
-        title: video.title,
-        artist: "Youtube", // ... flaw of the free API
-        durationSeconds: 0,
-        coverArtURL: video.snippet.thumbnails.url,
-        type: "YOUTUBE",
-        uri: video.id.videoId,
-      };
-    });
+    try {
+      const spotifyResults = (
+        await spotifyWebApi.searchTracks(search, {
+          limit: 10,
+        })
+      ).body.tracks.items;
 
-    if (searchFilters.spotifyResults && searchFilters.youtubeResults) {
-      res.json(
-        stitchArrays(normalizedSpotifyResults, normalizedYoutubeResults)
-      );
-    } else if (searchFilters.spotifyResults) {
-      res.json(normalizedSpotifyResults);
-    } else if (searchFilters.youtubeResults) {
-      res.json(normalizedYoutubeResults);
-    } else {
-      res.json([]);
+      const youtubeResults = await (
+        await youtubeSearchApi.search(search)
+      ).slice(0, 10);
+
+      const normalizedSpotifyResults = spotifyResults.map((track) => {
+        return {
+          title: track.name,
+          artist: track.artists[0]?.name,
+          durationSeconds: Math.floor(track.duration_ms / 1000),
+          coverArtURL: track.album.images[0]?.url,
+          type: "SPOTIFY",
+          uri: track.uri,
+        };
+      });
+
+      const normalizedYoutubeResults = youtubeResults.map((video) => {
+        return {
+          title: video.title,
+          artist: "Youtube", // ... flaw of the free API
+          durationSeconds: 0, // todo.. flaw of free API
+          coverArtURL: video.snippet.thumbnails.url,
+          type: "YOUTUBE",
+          uri: video.id.videoId,
+        };
+      });
+
+      if (searchFilters.spotifyResults && searchFilters.youtubeResults) {
+        res.json(
+          stitchArrays(normalizedSpotifyResults, normalizedYoutubeResults)
+        );
+      } else if (searchFilters.spotifyResults) {
+        res.json(normalizedSpotifyResults);
+      } else if (searchFilters.youtubeResults) {
+        res.json(normalizedYoutubeResults);
+      } else {
+        res.json([]);
+      }
+    } catch (e) {
+      console.log(e);
+      res.sendStatus(403);
     }
   } catch (e) {
-    console.log(e);
-    res.sendStatus(403);
+    res.sendStatus(500);
   }
 });
 
@@ -155,237 +152,251 @@ const getUsername = async (req) => {
   return (await spotifyWebApi.getMe()).body.id;
 };
 
-const TEST_USERNAME = "test7";
-
+// USED API:
 app.post("/add-my-playlist", async (req, res) => {
-  // const playlist = {
-  //   id: "1234-1234-1234",
-  //   title: "test",
-  //   songs: [
-  //     {
-  //       title: "songTitle",
-  //       artist: "songArtist",
-  //       durationSeconds: 123,
-  //       coverArtURL: "string",
-  //       type: "SPOTIFY",
-  //       uri: "string:string:123",
-  //     },
-  //   ],
-  // };
+  try {
+    const playlist = req.body.playlist;
+    const TEST_USERNAME = "test7";
 
-  const playlist = req.body.playlist;
+    const usersPlaylists = await db
+      .collection(USER_PLAYLISTS_DOC)
+      .find({ username: TEST_USERNAME })
+      .toArray();
 
-  const usersPlaylists = await db
-    .collection(USER_PLAYLISTS_DOC)
-    .find({ username: TEST_USERNAME })
-    .toArray();
-
-  //------add Playlist to userPlaylists
-  if (usersPlaylists.length === 0) {
+    //------add Playlist to userPlaylists
+    if (usersPlaylists.length === 0) {
+      await db
+        .collection(USER_PLAYLISTS_DOC)
+        .insertOne({ username: TEST_USERNAME, playlists: [] });
+    }
     await db
       .collection(USER_PLAYLISTS_DOC)
-      .insertOne({ username: TEST_USERNAME, playlists: [] });
-  }
-  await db
-    .collection(USER_PLAYLISTS_DOC)
-    .updateOne({ username: TEST_USERNAME }, [
-      {
-        $set: { playlists: { $concatArrays: ["$playlists", [playlist.id]] } },
-      },
-    ]);
+      .updateOne({ username: TEST_USERNAME }, [
+        {
+          $set: { playlists: { $concatArrays: ["$playlists", [playlist.id]] } },
+        },
+      ]);
 
-  //--------- add Playlist to playlists
-  const songIds = playlist.songs.map((song) => song.uri);
+    //--------- add Playlist to playlists
+    const songIds = playlist.songs.map((song) => song.uri);
 
-  const existingPlaylists = await db
-    .collection(PLAYLISTS_DOC)
-    .find({ id: playlist.id })
-    .toArray();
-  if (existingPlaylists.length > 0) {
-    //ERROR!
-  }
-  await db
-    .collection(PLAYLISTS_DOC)
-    .insertOne({ id: playlist.id, title: playlist.title, songs: songIds });
-
-  //----- add songs
-  playlist.songs.forEach(async (song) => {
-    const existingSong = await db
-      .collection(SONGS_DOC)
-      .find({ uri: song.uri })
+    const existingPlaylists = await db
+      .collection(PLAYLISTS_DOC)
+      .find({ id: playlist.id })
       .toArray();
-    if (existingSong.length === 0) {
-      await db.collection(SONGS_DOC).insertOne(song);
+    if (existingPlaylists.length > 0) {
+      //ERROR!
     }
-  });
+    await db
+      .collection(PLAYLISTS_DOC)
+      .insertOne({ id: playlist.id, title: playlist.title, songs: songIds });
 
-  res.json([]);
+    //----- add songs
+    playlist.songs.forEach(async (song) => {
+      const existingSong = await db
+        .collection(SONGS_DOC)
+        .find({ uri: song.uri })
+        .toArray();
+      if (existingSong.length === 0) {
+        await db.collection(SONGS_DOC).insertOne(song);
+      }
+    });
+
+    res.json([]);
+  } catch (e) {
+    res.sendStatus(500);
+  }
 });
 
 app.post("/init-playlist", async (req, res) => {
-  const username = await getUsername(req);
+  try {
+    const username = await getUsername(req);
 
-  const { title, id } = req.body;
+    const { title, id } = req.body;
 
-  const newPlaylist = {
-    id: id,
-    title: title,
-    songs: [],
-  };
+    const newPlaylist = {
+      id: id,
+      title: title,
+      songs: [],
+    };
 
-  const userExists =
-    (await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })) !=
-    null;
+    const userExists =
+      (await db
+        .collection(USER_PLAYLISTS_DOC)
+        .findOne({ username: username })) != null;
 
-  // first time user, init
-  if (!userExists) {
-    await db
-      .collection(USER_PLAYLISTS_DOC)
-      .insertOne({ username: username, playlists: [] });
+    // first time user, init
+    if (!userExists) {
+      await db
+        .collection(USER_PLAYLISTS_DOC)
+        .insertOne({ username: username, playlists: [] });
+    }
+
+    // add playlist id to user's playlists
+    await db.collection(USER_PLAYLISTS_DOC).updateOne({ username: username }, [
+      {
+        $set: {
+          playlists: { $concatArrays: ["$playlists", [newPlaylist.id]] },
+        },
+      },
+    ]);
+
+    // add playlist to playlist docs
+    await db.collection(PLAYLISTS_DOC).insertOne(newPlaylist);
+
+    res.sendStatus(200);
+  } catch (e) {
+    res.sendStatus(500);
   }
-
-  // add playlist id to user's playlists
-  await db.collection(USER_PLAYLISTS_DOC).updateOne({ username: username }, [
-    {
-      $set: { playlists: { $concatArrays: ["$playlists", [newPlaylist.id]] } },
-    },
-  ]);
-
-  // add playlist to playlist docs
-  await db.collection(PLAYLISTS_DOC).insertOne(newPlaylist);
-
-  res.sendStatus(200);
 });
 
 app.post("/add-song-to-playlist", async (req, res) => {
-  const username = await getUsername(req);
-  const { playlistId, song } = req.body;
+  try {
+    const username = await getUsername(req);
+    const { playlistId, song } = req.body;
 
-  // check user owns playlist
-  const userOwnsPlaylist = (
-    await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
-  ).playlists.includes(playlistId);
-  if (!userOwnsPlaylist) {
-    res.sendStatus(403);
-    return;
-  }
+    // check user owns playlist
+    const userOwnsPlaylist = (
+      await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
+    ).playlists.includes(playlistId);
+    if (!userOwnsPlaylist) {
+      res.sendStatus(403);
+      return;
+    }
 
-  // TODO - check playlist exists
+    // TODO - check playlist exists
 
-  // add songId to playlist doc songs
-  await db.collection(PLAYLISTS_DOC).updateOne({ id: playlistId }, [
-    {
-      $set: { songs: { $concatArrays: ["$songs", [song.uri]] } },
-    },
-  ]);
+    // add songId to playlist doc songs
+    await db.collection(PLAYLISTS_DOC).updateOne({ id: playlistId }, [
+      {
+        $set: { songs: { $concatArrays: ["$songs", [song.uri]] } },
+      },
+    ]);
 
-  // if song exists, no need to readd
-  const songExists =
-    (await db.collection(SONGS_DOC).findOne({ uri: song.uri })) != null;
-  if (songExists) {
+    // if song exists, no need to readd
+    const songExists =
+      (await db.collection(SONGS_DOC).findOne({ uri: song.uri })) != null;
+    if (songExists) {
+      res.sendStatus(200);
+      return;
+    }
+
+    // add song to songs doc
+    await db.collection(SONGS_DOC).insertOne(song);
+
     res.sendStatus(200);
-    return;
+  } catch (e) {
+    res.sendStatus(500);
   }
-
-  // add song to songs doc
-  await db.collection(SONGS_DOC).insertOne(song);
-
-  res.sendStatus(200);
 });
 
 app.post("/delete-playlist", async (req, res) => {
-  const username = await getUsername(req);
-  const { playlistId } = req.body;
+  try {
+    const username = await getUsername(req);
+    const { playlistId } = req.body;
 
-  // check user owns playlist
-  const usersPlaylists = (
-    await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
-  ).playlists;
-  if (!usersPlaylists.includes(playlistId)) {
-    res.sendStatus(403);
-    return;
-  }
+    // check user owns playlist
+    const usersPlaylists = (
+      await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
+    ).playlists;
+    if (!usersPlaylists.includes(playlistId)) {
+      res.sendStatus(403);
+      return;
+    }
 
-  // remove playlist from userPlaylists doc
-  await db.collection(USER_PLAYLISTS_DOC).updateOne({ username: username }, [
-    {
-      $set: {
-        playlists: usersPlaylists.filter((pid) => pid !== playlistId),
+    // remove playlist from userPlaylists doc
+    await db.collection(USER_PLAYLISTS_DOC).updateOne({ username: username }, [
+      {
+        $set: {
+          playlists: usersPlaylists.filter((pid) => pid !== playlistId),
+        },
       },
-    },
-  ]);
+    ]);
 
-  // remove playlist from playlists doc
-  await db.collection(PLAYLISTS_DOC).deleteOne({ id: playlistId });
+    // remove playlist from playlists doc
+    await db.collection(PLAYLISTS_DOC).deleteOne({ id: playlistId });
 
-  res.sendStatus(200);
+    res.sendStatus(200);
+  } catch (e) {
+    res.sendStatus(500);
+  }
 });
 
 app.post("/delete-song-from-playlist", async (req, res) => {
-  const username = await getUsername(req);
-  const { playlistId, songUri } = req.body;
+  try {
+    const username = await getUsername(req);
+    const { playlistId, songUri } = req.body;
 
-  // check user owns playlist
-  const userOwnsPlaylist = (
-    await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
-  ).playlists.includes(playlistId);
-  if (!userOwnsPlaylist) {
-    res.sendStatus(403);
-    return;
-  }
+    // check user owns playlist
+    const userOwnsPlaylist = (
+      await db.collection(USER_PLAYLISTS_DOC).findOne({ username: username })
+    ).playlists.includes(playlistId);
+    if (!userOwnsPlaylist) {
+      res.sendStatus(403);
+      return;
+    }
 
-  // delete song from playlists doc
-  const playlistSongs = (
-    await db.collection(PLAYLISTS_DOC).findOne({ id: playlistId })
-  ).songs;
-  await db.collection(PLAYLISTS_DOC).updateOne({ id: playlistId }, [
-    {
-      $set: {
-        songs: playlistSongs.filter((playlistSong) => playlistSong !== songUri),
+    // delete song from playlists doc
+    const playlistSongs = (
+      await db.collection(PLAYLISTS_DOC).findOne({ id: playlistId })
+    ).songs;
+    await db.collection(PLAYLISTS_DOC).updateOne({ id: playlistId }, [
+      {
+        $set: {
+          songs: playlistSongs.filter(
+            (playlistSong) => playlistSong !== songUri
+          ),
+        },
       },
-    },
-  ]);
+    ]);
 
-  res.sendStatus(200);
+    res.sendStatus(200);
+  } catch (e) {
+    res.sendStatus(500);
+  }
 });
 
 app.get("/get-my-playlists", async (req, res) => {
-  const spotifyWebApi = new SpotifyWebApi({
-    clientId: SPOTIFY_CLIENT_ID,
-    accessToken: req.query.spotifyAccessToken,
-  });
-  const username = (await spotifyWebApi.getMe()).body.id;
+  try {
+    const spotifyWebApi = new SpotifyWebApi({
+      clientId: SPOTIFY_CLIENT_ID,
+      accessToken: req.query.spotifyAccessToken,
+    });
+    const username = (await spotifyWebApi.getMe()).body.id;
 
-  const userPlaylists = await db
-    .collection(USER_PLAYLISTS_DOC)
-    .findOne({ username: username });
+    const userPlaylists = await db
+      .collection(USER_PLAYLISTS_DOC)
+      .findOne({ username: username });
 
-  if (!userPlaylists) {
-    res.json([]);
-    return;
+    if (!userPlaylists) {
+      res.json([]);
+      return;
+    }
+
+    const playlists = await Promise.all(
+      userPlaylists.playlists.map(async (playlistId) => {
+        const playlistDoc = await db
+          .collection(PLAYLISTS_DOC)
+          .findOne({ id: playlistId });
+
+        const songs = await Promise.all(
+          playlistDoc.songs.map(async (songUri) => {
+            return await db.collection(SONGS_DOC).findOne({ uri: songUri });
+          })
+        );
+
+        return {
+          id: playlistId,
+          title: playlistDoc.title,
+          songs: songs,
+        };
+      })
+    );
+
+    res.json(playlists);
+  } catch (e) {
+    res.sendStatus(500);
   }
-
-  const playlists = await Promise.all(
-    userPlaylists.playlists.map(async (playlistId) => {
-      const playlistDoc = await db
-        .collection(PLAYLISTS_DOC)
-        .findOne({ id: playlistId });
-
-      const songs = await Promise.all(
-        playlistDoc.songs.map(async (songUri) => {
-          return await db.collection(SONGS_DOC).findOne({ uri: songUri });
-        })
-      );
-
-      return {
-        id: playlistId,
-        title: playlistDoc.title,
-        songs: songs,
-      };
-    })
-  );
-
-  res.json(playlists);
 });
 
 mongoClient.connect().then(() => {

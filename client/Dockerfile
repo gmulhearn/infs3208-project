@@ -2,8 +2,6 @@ FROM ubuntu:18.04
 
 LABEL maintainer="g.mulhearn@uqconnect.edu.au"
 
-# arg from docker-compose in root dir
-ARG REACT_APP_AUTH_SERVER_BASE_URL
 ENV TZ=Australia/Brisbane
 
 # update timezone
@@ -28,9 +26,7 @@ WORKDIR /var/www/html
 RUN rm -rf node_modules package-lock.json
 
 # install webapp dependencies and build as static
-RUN npm install \
-    && REACT_APP_AUTH_SERVER_BASE_URL=${REACT_APP_AUTH_SERVER_BASE_URL} \
-    npm run build
+RUN npm install && npm run build
 
 # start nginx server
 ENTRYPOINT nginx -g "daemon off;"
