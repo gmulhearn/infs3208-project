@@ -33,9 +33,15 @@ The default configuration, ran with `docker-compose up -d`, requires that the re
 The other compose configuration, ran with `docker-compose up --file docker-compose-full-build -d`, does not require any initial configuration but takes SIGNIFICANTLY longer to build. This is because the configuration will install and build the react app within the custom image, which takes a while (~10min on Macbook Pro).
 
 ## Docker Swarm Usage
-*assuming 3 nodes - manager, worker1, worker2*
+---
+*assuming:*
+* 3 nodes connected in a swarm - manager, worker1, worker2
+* reactjs app is already built (see above section)
+* `.env` file created (see above section)
 
-**Prepare files on nodes:**
+---
+
+**Prepare files on ALL nodes:**
 * `docker-machine scp -r . manager:~/`
 * `docker-machine scp -r . worker1:~/`
 * `docker-machine scp -r . worker2:~/`

@@ -10,6 +10,9 @@ services:
   mongo_admin:
     image: mongo-express
     container_name: 'mongo_admin'
+    environment: 
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=password
     depends_on:
       - mongo
     links:
