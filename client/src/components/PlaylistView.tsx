@@ -1,4 +1,4 @@
-import { Box, makeStyles, Typography } from '@material-ui/core';
+import { Box, makeStyles, Typography, useMediaQuery, useTheme } from '@material-ui/core';
 import React from 'react'
 import { Playlist, Song } from '../types';
 import SongItemPaper from './SongItemPaper';
@@ -22,6 +22,9 @@ const useStyles = makeStyles((theme) => ({
     deleteSongFromPlaylist: (song: Song, playlist: Playlist) => void;
   }) => {
     const classes = useStyles();
+
+    const theme = useTheme();
+    const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
   
     const handlePlaySong = (song: Song, songIndex: number) => {
       playSong(song, songIndex);
@@ -30,7 +33,7 @@ const useStyles = makeStyles((theme) => ({
       <Box
         display="flex"
         flexDirection="column"
-        style={{ maxWidth: "60em", margin: "auto", marginTop: "1em" }}
+        style={{ margin: "auto", marginTop: "1em", width: isMdUp ? "50%" : "90%" }}
       >
         <Typography variant="h4">{playlist.title}</Typography>
         <Box
@@ -45,7 +48,7 @@ const useStyles = makeStyles((theme) => ({
               playSong={(song) => {
                 handlePlaySong(song, i);
               }}
-              style={{ minWidth: "55em" }}
+              style={{}}
               deleteSong={(song: Song) => deleteSongFromPlaylist(song, playlist)}
             />
           ))}

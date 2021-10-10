@@ -5,6 +5,8 @@ import {
   makeStyles,
   Paper,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from "@material-ui/core";
 import { Add, Close } from "@material-ui/icons";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
@@ -30,6 +32,10 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const truncate = (str: string, n: number) => {
+  return (str.length > n) ? str.substr(0, n-1) + '...' : str;
+};
+
 const SongItemPaper = ({
   song,
   style,
@@ -47,6 +53,9 @@ const SongItemPaper = ({
 }) => {
   const classes = useStyles();
 
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
+
   let modifiedStyle = style;
   if (modifiedStyle) {
     if (outline) {
@@ -59,7 +68,7 @@ const SongItemPaper = ({
     <Paper className={classes.songItemPaper} style={modifiedStyle}>
       <Box display="flex" flexDirection="row" justifyContent="space-between">
         <Box display="flex" flexDirection="column">
-          <Typography style={{ fontWeight: "bold" }}>{song.title}</Typography>
+          <Typography style={{ fontWeight: "bold" }}>{isMdUp ? song.title : truncate(song.title, 30)}</Typography>
           <Typography>{song.artist}</Typography>
           {/* <Typography>{song.durationSeconds} seconds</Typography> */}
           {song.type == SongType.SPOTIFY ? (
@@ -91,7 +100,7 @@ const SongItemPaper = ({
             style={{
               position: "absolute",
               right: "2em",
-              top: "1em",
+              top: "25%",
             }}
             onClick={() => {
               playSong(song);

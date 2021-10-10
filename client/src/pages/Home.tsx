@@ -1,16 +1,8 @@
-import {
-  Box,
-  Grid,
-  makeStyles,
-} from "@material-ui/core";
+import { AppBar, Box, Grid, makeStyles } from "@material-ui/core";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import PlaylistSideBar from "../components/PlaylistSideBar"
-import {
-  Song,
-  Playlist,
-  SpotifyAuthServerResponse,
-} from "../types";
+import PlaylistSideBar from "../components/PlaylistSideBar";
+import { Song, Playlist, SpotifyAuthServerResponse } from "../types";
 import PlaylistView from "../components/PlaylistView";
 import SongSearch from "../components/SongSearch";
 import PlayerFooter from "../components/PlayerFooter";
@@ -34,7 +26,13 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Home = ({ authCode }: { authCode: string }) => {
+const Home = ({
+  authCode,
+  initAccessToken,
+}: {
+  authCode?: string;
+  initAccessToken?: string;
+}) => {
   const classes = useStyles();
   const [accessToken, setAccessToken] = useState<string | undefined>();
   const [playingSong, setPlayingSong] = useState<Song | undefined>();
@@ -45,16 +43,34 @@ const Home = ({ authCode }: { authCode: string }) => {
     useState<number | undefined>(undefined);
 
   useEffect(() => {
+    if (!authCode) return;
     axios
       .post(`${AUTH_SERVER_BASE_URL}/auth-with-code`, {
         authCode: authCode,
-        redirectUri: window.location.origin
+        redirectUri: window.location.origin,
       })
       .then((response: any) => {
         let res = response as SpotifyAuthServerResponse;
         setAccessToken(res.data.access_token);
+        // todo refresh token
+
+        window.history.pushState(
+          {},
+          "",
+          `/?accessToken=${res.data.access_token}`
+        );
+      })
+      .catch(() => {
+        // back to login
+        // window.location.href = "/";
       });
   }, [authCode]);
+
+  useEffect(() => {
+    if (!initAccessToken) return;
+    if (accessToken) return;
+    setAccessToken(initAccessToken);
+  }, [initAccessToken]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -106,19 +122,19 @@ const Home = ({ authCode }: { authCode: string }) => {
   };
 
   const createPlaylist = (playlist: Playlist) => {
-    if (!accessToken) return
+    if (!accessToken) return;
 
     setPlaylists([...playlists, playlist]);
 
     axios.post(`${AUTH_SERVER_BASE_URL}/init-playlist`, {
-      spotifyAccessToken: accessToken, 
+      spotifyAccessToken: accessToken,
       id: playlist.id,
       title: playlist.title,
     });
   };
 
   const addSongToCurrentPlaylist = (song: Song) => {
-    if (!accessToken) return
+    if (!accessToken) return;
 
     // update current Playlist
     if (!currentPlaylist) return;
@@ -140,22 +156,22 @@ const Home = ({ authCode }: { authCode: string }) => {
 
     // add to db
     axios.post(`${AUTH_SERVER_BASE_URL}/add-song-to-playlist`, {
-      spotifyAccessToken: accessToken, 
+      spotifyAccessToken: accessToken,
       playlistId: currentPlaylist.id,
       song: song,
     });
   };
 
   const deletePlaylist = (playlist: Playlist) => {
-    if (!accessToken) return
+    if (!accessToken) return;
 
-    // potentially update currentPlaylist 
+    // potentially update currentPlaylist
     if (currentPlaylist && playlist.id === currentPlaylist.id) {
-      setCurrentPlaylist(undefined)
+      setCurrentPlaylist(undefined);
     }
 
     // update playlists
-    setPlaylists(playlists.filter((p) => (p.id !== playlist.id)))
+    setPlaylists(playlists.filter((p) => p.id !== playlist.id));
 
     // update db
     axios.post(`${AUTH_SERVER_BASE_URL}/delete-playlist`, {
@@ -165,35 +181,37 @@ const Home = ({ authCode }: { authCode: string }) => {
   };
 
   const deleteSongFromPlaylist = (song: Song, playlist: Playlist) => {
-    if (!accessToken) return
+    if (!accessToken) return;
 
     const updatedPlaylist: Playlist = {
       id: playlist.id,
       title: playlist.title,
-      songs: playlist.songs.filter((s) => (s.uri !== song.uri))
-    }
+      songs: playlist.songs.filter((s) => s.uri !== song.uri),
+    };
 
     // potentially update currentPlaylist
     if (currentPlaylist && playlist.id === currentPlaylist.id) {
-      setCurrentPlaylist(updatedPlaylist)
+      setCurrentPlaylist(updatedPlaylist);
     }
 
     // update playlists
-    setPlaylists(playlists.map((p) => {
-      if (p.id === updatedPlaylist.id) {
-        return updatedPlaylist
-      } else {
-        return p
-      }
-    }))
+    setPlaylists(
+      playlists.map((p) => {
+        if (p.id === updatedPlaylist.id) {
+          return updatedPlaylist;
+        } else {
+          return p;
+        }
+      })
+    );
 
     // update db
     axios.post(`${AUTH_SERVER_BASE_URL}/delete-song-from-playlist`, {
       spotifyAccessToken: accessToken,
       playlistId: playlist.id,
-      songUri: song.uri
-    })
-  }
+      songUri: song.uri,
+    });
+  };
 
   return (
     <Box>
@@ -203,15 +221,13 @@ const Home = ({ authCode }: { authCode: string }) => {
         setCurrentPlaylist={setCurrentPlaylist}
         deletePlaylist={deletePlaylist}
       />
-      <Grid container justifyContent="center" className={classes.root}>
-        <Grid item xs={12}>
+      <Box display="flex" flexDirection="column" className={classes.root}>
+        
           <SongSearch
             accessToken={accessToken}
             playSong={playSong}
             addSongToCurrentPlaylist={addSongToCurrentPlaylist}
           />
-        </Grid>
-        <Grid item xs={12}>
           {currentPlaylist ? (
             <PlaylistView
               playlist={currentPlaylist}
@@ -220,10 +236,9 @@ const Home = ({ authCode }: { authCode: string }) => {
               deleteSongFromPlaylist={deleteSongFromPlaylist}
             />
           ) : (
-            <>TODO</>
+            <></>
           )}
-        </Grid>
-      </Grid>
+      </Box>
       <PlayerFooter
         song={playingSong}
         playNextSong={playNextSong}

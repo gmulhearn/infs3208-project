@@ -9,7 +9,7 @@ import { SkipPrevious, Pause, SkipNext } from "@material-ui/icons";
 import React, { useEffect, useState } from "react";
 import YouTube, { Options } from "react-youtube";
 import { Song, SongType } from "../types";
-import SpotifyPlayer from "react-spotify-web-playback";
+import SpotifyPlayer, { CallbackState } from "react-spotify-web-playback";
 import PlayArrowIcon from "@material-ui/icons/PlayArrow";
 
 const useStyles = makeStyles((theme) => ({
@@ -44,11 +44,14 @@ const PlayerFooter = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [youtubePlayerTarget, setYoutubePlayerTarget] =
     useState<any | undefined>(undefined);
+  const [spotifyEnabled, setSpotifyEnabled] = useState(true);
 
   useEffect(() => {
+    console.log(song);
     if (song) {
       setIsYoutubeSong(song.type == SongType.YOUTUBE);
       setIsPlaying(true);
+      setSpotifyEnabled(true);
     }
   }, [song]);
 
@@ -83,6 +86,21 @@ const PlayerFooter = ({
     playPreviousSong();
   };
 
+  const handleSpotifyPlayerCallback = (state: CallbackState) => {
+    console.log(state);
+    if (state.previousTracks.length > 0) {
+      // i THINK this is enough to determine if the song has ended in this usecase
+      setSpotifyEnabled(false); // temporarily tear down spotify, required for spotify to spotify playback
+      playNextSong();
+    }
+  };
+
+  const handleYoutubePlayerStateChange = (e: any) => {
+    if (e.data === 0) {
+      playNextSong();
+    }
+  };
+
   return (
     <Box className={classes.playerBox} display="flex" flexDirection="row">
       {song && isYoutubeSong ? (
@@ -92,13 +110,16 @@ const PlayerFooter = ({
           onReady={(e) => {
             setYoutubePlayerTarget(e.target);
           }}
+          onStateChange={handleYoutubePlayerStateChange}
         />
-      ) : song && spotifyAccessToken ? (
+      ) : song && spotifyAccessToken && spotifyEnabled ? (
         <div style={{ display: "none" }}>
           <SpotifyPlayer
             token={spotifyAccessToken}
             uris={[song.uri]}
+            autoPlay={true}
             play={isPlaying}
+            callback={handleSpotifyPlayerCallback}
           />
         </div>
       ) : (

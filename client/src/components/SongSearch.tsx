@@ -1,4 +1,13 @@
-import { Box, Button, makeStyles, Switch, TextField } from "@material-ui/core";
+import {
+  Box,
+  Button,
+  Grid,
+  makeStyles,
+  Switch,
+  TextField,
+  useMediaQuery,
+  useTheme,
+} from "@material-ui/core";
 import axios from "axios";
 import React, { useState } from "react";
 import { Song, SearchFilters } from "../types";
@@ -24,7 +33,12 @@ const useStyles = makeStyles((theme) => ({
     position: "absolute",
     maxWidth: "50em",
     margin: "auto",
-    top: "7.5em",
+    [theme.breakpoints.up('md')]: {
+      top: "7.5em",
+    },
+    [theme.breakpoints.down('md')]: {
+      top: "9.5em",
+    },
     backgroundColor: "#191919",
     zIndex: 10000,
   },
@@ -44,6 +58,9 @@ const SongSearch = ({
   addSongToCurrentPlaylist: (song: Song) => void;
 }) => {
   const classes = useStyles();
+
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<Song[]>([]);
@@ -86,48 +103,50 @@ const SongSearch = ({
       display="flex"
       flexDirection="column"
       alignItems="center"
-      style={{ maxWidth: "50em", margin: "auto" }}
+      flexGrow={1}
+      style={{margin: "auto", width: isMdUp ? "50%" : "90%" }}
     >
-      <Box
-        display="flex"
-        flexDirection="row"
-        justifyContent="center"
-        alignItems="center"
-        style={{ width: "100%" }}
-      >
-        <TextField
-          placeholder="Search for a song..."
-          variant="outlined"
-          fullWidth
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <Box display="flex" flexDirection="row" style={{ marginLeft: "2em" }}>
-          <Box display="flex" flexDirection="column" alignItems="center">
-            <img src={spotifyLogo} className={classes.platformLogo} />
+      <Grid container style={{ minWidth: "100%" }}>
+        <Grid item xs={12} md={6}>
+          <TextField
+            placeholder="Search for a song..."
+            variant="outlined"
+            fullWidth
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Box display="flex" flexDirection="row" justifyContent="center">
+            <Box display="flex" flexDirection="column" alignItems="center">
+              <img src={spotifyLogo} className={classes.platformLogo} />
 
-            <Switch
-              checked={includeSpotify}
-              onChange={() => setIncludeSpotify(!includeSpotify)}
-            />
-          </Box>
-          <Box display="flex" flexDirection="column" alignItems="center">
-            <img src={youtubeLogo} className={classes.platformLogo} />
+              <Switch
+                checked={includeSpotify}
+                onChange={() => setIncludeSpotify(!includeSpotify)}
+              />
+            </Box>
+            <Box display="flex" flexDirection="column" alignItems="center">
+              <img src={youtubeLogo} className={classes.platformLogo} />
 
-            <Switch
-              checked={includeYoutube}
-              onChange={() => setIncludeYoutube(!includeYoutube)}
-            />
+              <Switch
+                checked={includeYoutube}
+                onChange={() => setIncludeYoutube(!includeYoutube)}
+              />
+            </Box>
           </Box>
-        </Box>
-        <Button
-          color="primary"
-          onClick={handleSearchClicked}
-          style={{ marginLeft: "2em", paddingInline: "2em", height: "3em" }}
-          variant="contained"
-        >
-          Search
-        </Button>
-      </Box>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Button
+            fullWidth 
+            color="primary"
+            onClick={handleSearchClicked}
+            style={{ paddingInline: "2em", height: "3.5em" }}
+            variant="contained"
+          >
+            Search
+          </Button>
+        </Grid>
+      </Grid>
       <Box
         display="flex"
         flexDirection="column"

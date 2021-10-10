@@ -1,53 +1,91 @@
-import React, { useState } from 'react'
-import { Playlist } from '../types';
+import React, { useState } from "react";
+import { Playlist } from "../types";
 import { v4 as uuidv4 } from "uuid";
-import { Box, Button, Dialog, DialogTitle, Divider, Drawer, IconButton, List, ListItem, ListItemIcon, ListItemSecondaryAction, ListItemText, makeStyles, TextField, Typography } from '@material-ui/core';
-import { Add, Close } from '@material-ui/icons';
-
+import {
+  Box,
+  Button,
+  Dialog,
+  DialogTitle,
+  Divider,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemSecondaryAction,
+  ListItemText,
+  makeStyles,
+  TextField,
+  Toolbar,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@material-ui/core";
+import { Add, Close, Menu } from "@material-ui/icons";
 
 const useStyles = makeStyles((theme) => ({
-    dialog: {
-      padding: theme.spacing(4),
-      margin: theme.spacing(3),
-    },
-    playlistsSideBar: {
-      minWidth: "15em",
-    },
-  }));
+  dialog: {
+    padding: theme.spacing(4),
+    margin: theme.spacing(3),
+  },
+  playlistsSideBar: {
+    minWidth: "15em",
+  },
+}));
 
 const PlaylistSideBar = ({
-    playlists,
-    createPlaylist,
-    setCurrentPlaylist,
-    deletePlaylist,
-  }: {
-    playlists: Playlist[];
-    createPlaylist: (playlist: Playlist) => void;
-    setCurrentPlaylist: (playlist: Playlist) => void;
-    deletePlaylist: (playlist: Playlist) => void;
-  }) => {
-    const classes = useStyles();
-    const [createDialogOpen, setCreateDialogOpen] = useState(false);
-    const [playlistPendingDeletion, setPlaylistPendingDeletion] =
-      useState<Playlist | undefined>(undefined);
-    const [playlistNameInput, setPlaylistNameInput] = useState("");
-  
-    const handleCreatePlaylist = () => {
-      createPlaylist({ id: uuidv4(), title: playlistNameInput, songs: [] });
-      setPlaylistNameInput("");
-      setCreateDialogOpen(false);
-    };
-  
-    const handleDeletePlaylist = () => {
-      if (playlistPendingDeletion) {
-        console.log(`deleting ${playlistPendingDeletion?.title}...`);
-        deletePlaylist(playlistPendingDeletion);
-        setPlaylistPendingDeletion(undefined);
-      }
-    };
-  
-    return (
-      <Drawer variant="permanent" className={classes.playlistsSideBar}>
+  playlists,
+  createPlaylist,
+  setCurrentPlaylist,
+  deletePlaylist,
+}: {
+  playlists: Playlist[];
+  createPlaylist: (playlist: Playlist) => void;
+  setCurrentPlaylist: (playlist: Playlist) => void;
+  deletePlaylist: (playlist: Playlist) => void;
+}) => {
+  const classes = useStyles();
+  const theme = useTheme();
+  const isMdUp = useMediaQuery(theme.breakpoints.up("md"));
+
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [playlistPendingDeletion, setPlaylistPendingDeletion] =
+    useState<Playlist | undefined>(undefined);
+  const [playlistNameInput, setPlaylistNameInput] = useState("");
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const handleCreatePlaylist = () => {
+    createPlaylist({ id: uuidv4(), title: playlistNameInput, songs: [] });
+    setPlaylistNameInput("");
+    setCreateDialogOpen(false);
+  };
+
+  const handleDeletePlaylist = () => {
+    if (playlistPendingDeletion) {
+      console.log(`deleting ${playlistPendingDeletion?.title}...`);
+      deletePlaylist(playlistPendingDeletion);
+      setPlaylistPendingDeletion(undefined);
+    }
+  };
+
+  return (
+    <div>
+      {isMdUp ? <></> : <Toolbar style={{ backgroundColor: theme.palette.background.paper }}>
+          <IconButton
+          onClick={() => {setDrawerOpen(true)}}
+          >
+            <Menu />
+          </IconButton>
+        </Toolbar>}
+
+      <Drawer
+        variant={isMdUp ? "permanent" : "temporary"}
+        className={classes.playlistsSideBar}
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+        }}
+      >
         <Dialog
           open={createDialogOpen}
           onClose={() => {
@@ -81,7 +119,7 @@ const PlaylistSideBar = ({
             </Button>
           </Box>
         </Dialog>
-  
+
         <Dialog
           open={playlistPendingDeletion != undefined}
           onClose={() => {
@@ -109,13 +147,13 @@ const PlaylistSideBar = ({
             </Button>
           </Box>
         </Dialog>
-  
+
         <Box className={classes.playlistsSideBar}>
           <Typography style={{ margin: "1em" }} variant="h5">
             Playlists
           </Typography>
           <Divider />
-  
+
           <List>
             {playlists.map((playlist, index) => (
               <ListItem
@@ -152,7 +190,8 @@ const PlaylistSideBar = ({
           </ListItem>
         </Box>
       </Drawer>
-    );
-  };
+    </div>
+  );
+};
 
-export default PlaylistSideBar
+export default PlaylistSideBar;
