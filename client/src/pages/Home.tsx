@@ -15,7 +15,16 @@ import PlaylistView from "../components/PlaylistView";
 import SongSearch from "../components/SongSearch";
 import PlayerFooter from "../components/PlayerFooter";
 
-const AUTH_SERVER_BASE_URL = `${window.location.origin}/api`
+const removeStringSuffix = (str: string, suffix: string): string => {
+  if (str.endsWith(suffix)) return str.slice(0, str.length - 1);
+
+  return str;
+};
+
+const AUTH_SERVER_BASE_URL = `${removeStringSuffix(
+  window.location.origin + window.location.pathname,
+  "/"
+)}/api`;
 
 const useStyles = makeStyles((theme) => ({
   root: {

@@ -3,7 +3,18 @@ import React from "react";
 
 const SPOTIFY_CLIENT_ID =  "24ef7853deb14c51bd6f72e440f35fc1" // TODO - process env
 const SPOTIFY_RESPONSE_TYPE = "code"
-const SPOTIFY_REDIRECT_URL = window.location.origin
+
+const removeStringSuffix = (str: string, suffix: string): string => {
+  if (str.endsWith(suffix)) return str.slice(0, str.length - 1);
+
+  return str;
+};
+
+const SPOTIFY_REDIRECT_URL = `${removeStringSuffix(
+  window.location.origin + window.location.pathname,
+  "/"
+)}`;
+
 const SPOTIFY_AUTH_URL = 
     `https://accounts.spotify.com/authorize` +
     `?client_id=${SPOTIFY_CLIENT_ID}` +
