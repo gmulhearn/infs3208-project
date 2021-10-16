@@ -14,6 +14,10 @@ The backend for this app is a nodejs express server. The express server is direc
 ## Frontend
 The frontend is a typescript ReactJS application which talks to the backend server and uses spotify and Youtube SDKs for audio playback. The frontend container is an nginx server which runs the static compiled react app (built with `npm run build`).
 
+## Overview
+![infs3208_actual_architecture drawio](https://user-images.githubusercontent.com/57472912/137574554-d6087bc8-2edb-4895-8b88-30637eea9a37.png)
+
+
 # Set Up / Installation
 ## External Set Up
 Before using this app, you must register a Spotify project and acquire the API keys. See Spotify's [guide](https://developer.spotify.com/documentation/general/guides/app-settings/#register-your-app). Additionally, you must whitelist the Redirect URI you wish to use - for local deployment this is just `http://localhost`.
